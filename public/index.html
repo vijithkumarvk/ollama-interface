@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Private Agent</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1>Private Agent</h1>
+          <div class="header-status-area">
+            <div class="status">
+              <span class="status-dot" id="statusDot"></span>
+              <span id="statusText">Connecting...</span>
+            </div>
+            <div
+              class="context-usage"
+              id="contextUsageArea"
+              title="Context usage of the current session"
+            >
+              <i data-lucide="brain-circuit"></i>
+              <div class="context-bar-container">
+                <div class="context-bar-fill" id="contextBar"></div>
+              </div>
+              <span class="context-text"
+                ><span id="usedTokens">0</span> /
+                <span id="totalTokensDisplay">4096</span></span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="theme-switcher">
+          <button class="theme-btn" onclick="setTheme('light')" id="btn-light">
+            Light
+          </button>
+          <button
+            class="theme-btn active"
+            onclick="setTheme('system')"
+            id="btn-system"
+          >
+            System
+          </button>
+          <button class="theme-btn" onclick="setTheme('dark')" id="btn-dark">
+            Dark
+          </button>
+        </div>
+        <div class="header-controls">
+          <select class="model-select" id="modelSelect">
+            <option>Loading models...</option>
+          </select>
+
+          <div class="dropdown-container">
+            <button
+              class="btn icon-btn"
+              onclick="toggleDropdown()"
+              id="menuTrigger"
+            >
+              <i data-lucide="settings"></i>
+            </button>
+
+            <div class="dropdown-menu" id="actionMenu">
+              <div class="menu-item" onclick="showSystemInfo()">
+                <i data-lucide="cpu"></i>
+                <span>System Info</span>
+              </div>
+
+              <div class="menu-item" onclick="openSettingsPop()">
+                <i data-lucide="settings"></i>
+                <span>Settings</span>
+              </div>
+
+              <div class="menu-item" onclick="exportHistory()">
+                <i data-lucide="download"></i>
+                <span>Export Chat</span>
+              </div>
+
+              <div class="menu-divider"></div>
+
+              <div class="menu-item danger" onclick="clearHistory()">
+                <i data-lucide="trash-2"></i>
+                <span>Clear History</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-container" id="chatContainer">
+        <div class="empty-state" style="text-align: center; margin-top: 100px">
+          <h3
+            style="font-size: 34px; margin-bottom: 10px; letter-spacing: -1px"
+          >
+            How can I help you?
+          </h3>
+          <p style="color: var(--text-secondary); margin-bottom: 30px">
+            Your private, local AI powered by Ollama.
+          </p>
+          <div
+            class="empty-state-suggestions"
+            style="
+              display: flex;
+              gap: 10px;
+              justify-content: center;
+              flex-wrap: wrap;
+            "
+          >
+            <div
+              class="suggestion-chip"
+              onclick="sendSuggestion('Write a travel itinerary for Japan')"
+            >
+              Japan Itinerary
+            </div>
+            <div
+              class="suggestion-chip"
+              onclick="sendSuggestion('Explain quantum physics like I am five')"
+            >
+              Quantum Physics
+            </div>
+            <div
+              class="suggestion-chip"
+              onclick="sendSuggestion('Code a simple snake game in Python')"
+            >
+              Python Snake Game
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="typing-indicator" id="typingIndicator">
+        <div class="indicator-avatar">
+          <i data-lucide="bot"></i>
+        </div>
+        <div class="indicator-bubble">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <span class="indicator-label">AI is thinking...</span>
+      </div>
+
+      <div class="input-container">
+        <input
+          type="text"
+          id="messageInput"
+          placeholder="Message Private Agent"
+          onkeypress="handleKeyPress(event)"
+        />
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+
+    <!-- System Info Modal -->
+    <div class="modal" id="systemInfoModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-header-title">
+            <i data-lucide="computer" style="width: 20px; height: 20px"></i>
+            <h2>System Information</h2>
+          </div>
+          <button class="close-icon-btn" onclick="closeSystemInfo()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="systemInfoGrid" class="system-info-grid">
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>Gathering system details...</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="modal-btn secondary" onclick="closeSystemInfo()">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="agentSettingsModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-header-title">
+            <i data-lucide="settings" style="width: 20px; height: 20px"></i>
+            <h2>Settings</h2>
+          </div>
+          <button class="close-icon-btn" onclick="closeSettingsPop()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">
+              <i data-lucide="message-square-text"></i>
+              System Prompt
+            </label>
+            <textarea
+              id="systemPrompt"
+              placeholder="Define how the AI should behave..."
+            >
+You are a helpful AI assistant.</textarea
+            >
+            <p class="form-help">Sets the behavior and persona of the agent.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <i data-lucide="database"></i>
+              Max Context Tokens
+            </label>
+            <input type="number" id="maxTokens" value="4096" />
+            <p class="form-help">Maximum length of conversation memory.</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-label-group">
+              <label class="form-label">
+                <i data-lucide="terminal"></i>
+                System Tools
+              </label>
+              <p class="form-help">
+                Allow agent to execute commands and manage files.
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="enableToolsSettings" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="modal-btn secondary" onclick="closeSettingsPop()">
+            Cancel
+          </button>
+          <button class="modal-btn primary" onclick="saveSettings()">
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
